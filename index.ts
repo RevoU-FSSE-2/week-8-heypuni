@@ -1,8 +1,8 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express } from "express";
 import dotenv from "dotenv";
 
 import { transactions } from "./data";
-import bodyParser from "body-parser";
+import bodyParser from 'body-parser';
 
 dotenv.config();
 
@@ -11,11 +11,17 @@ const port = process.env.PORT || 8000;
 
 app.use(bodyParser.json());
 
-const transaction: Transaction[] = [];
+// Get all
+app.get('/', (req, res) => {
+  res.status(202).json({
+    messages: "Success get all transactions data",
+    transactions
+  });
+});
 
 // Get all transactions
 app.get('/transactions', (req, res) => {
-  res.status(200).json({
+  res.status(202).json({
     messages: "Success get all transactions data",
     transactions
   });
@@ -55,46 +61,67 @@ app.post('/transactions', (req, res) => {
   })
 });
 
-// Delete
-app.delete('/transactions/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  
-  const transaction = transactions.filter((transaction) => transaction.id !== id);
+// Delete transactions 
+app.delete('./transactions/:id', (req, res) => {
+  const idToDelete = parseInt(req.params.id);
+  const itemToDelete = transactions.findIndex(transaction => transaction.id == idToDelete);
 
-  if (transaction.length != 0) {
-    res.json({
-      message: "Transaction deleted successfully",
-      transaction
+  if (itemToDelete !== -1) {
+      transactions.splice(itemToDelete, 1);
+      res.json({
+          message: "Transaction successfully deleted!",
+          transactions
+      })
+  } else {
+      res.status(404).json({
+          message: "Transaction not found",
+          transactions
+      })
+  }
+});
+
+// Put Transactions
+app.put('/transactions/:id', (req, res) => {
+  const idToUpdate = parseInt(req.params.id);
+  const updatedTransaction = req.body;
+
+  const indexToUpdate = transactions.findIndex(transaction => transaction.id === idToUpdate);
+
+  if (indexToUpdate !== -1) {
+      transactions[indexToUpdate] = updatedTransaction;
+      res.json({
+          message: `Transaction updated successfully.`,
+          transactions
       });
   } else {
-    res.json({
-      message: "Failed getting transactions by id",
-      transaction
-    })
-   }
-});
-
-// Put
-app.put('/transactions/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { type, name, detail, amount } = req.body;
-
-  const transactionResult = transactions.find(transaction => transaction.id === id);
-
-  if (transactionResult < 0) {
-    return res.status(404).json({ message: 'Not found' });
+      res.status(404).json({
+          message: `Transaction not found.`,
+          transactions
+      });
   }
-
-  transactions[transactionResult] = {
-    id,
-    type: type || transactions[transactionResult].type,
-    name: name || transactions[transactionResult].name,
-    detail: detail || transactions[transactionResult].detail,
-    amount: amount || transactions[transactionResult].amount
-  };
-
-  res.json({ message: 'Transaction updated!', updatedTransaction: transactions[transactionResult] });
 });
+
+// Patch Transactions
+app.patch('./transactions/:id', (req, res) => {
+  const idToPatch = parseInt(req.params.id);
+  const updatedPatch = req.body;
+
+  const patchedId = transactions.findIndex(transaction => transaction.id === idToPatch);
+
+  if (patchedId !== -1) {
+      transactions[patchedId] = { ...transactions[patchedId], ...updatedPatch };
+      res.json({
+          message: `Transaction has been patched!`,
+          transactions
+      })
+  } else {
+      res.status(404).json({
+          message: `Transaction does not exist`,
+          transactions
+      })
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
